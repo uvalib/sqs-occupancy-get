@@ -53,7 +53,7 @@ func httpGet(workerId int, url string, client *http.Client) ([]byte, error) {
 				return nil, err
 			}
 
-			log.Printf("ERROR: worker %d GET %s failed with error, retrying (%s)", workerId, url, err)
+			log.Printf("ERROR: worker %d GET %s failed with error (%s), retry # %d", workerId, url, err, count)
 
 			// sleep for a bit before retrying
 			time.Sleep(retrySleepTime)
