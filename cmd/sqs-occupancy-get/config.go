@@ -17,6 +17,7 @@ type ServiceConfig struct {
 	Endpoints       []string // the list of endpoints
 	Username        []string // the list of endpoint usernames
 	Password        []string // the list of endpoint passwords
+	EndpointTimeout int      // the endpoint timeout in seconds
 	PollTimeSeconds int      // the endpoint poll time in seconds
 }
 
@@ -69,6 +70,7 @@ func LoadConfiguration() *ServiceConfig {
 
 	cfg.OutQueueName = ensureSetAndNonEmpty("SQS_OCCUPANCY_GET_OUT_QUEUE")
 	cfg.MessageBucketName = ensureSetAndNonEmpty("SQS_MESSAGE_BUCKET")
+	cfg.EndpointTimeout = envToInt("SQS_OCCUPANCY_GET_ENDPOINT_TIMEOUT")
 	cfg.PollTimeSeconds = envToInt("SQS_OCCUPANCY_GET_POLL_IN_SECONDS")
 	userName := ensureSetAndNonEmpty("SQS_OCCUPANCY_GET_USERNAME")
 	password := ensureSetAndNonEmpty("SQS_OCCUPANCY_GET_PASSWORD")
@@ -85,8 +87,14 @@ func LoadConfiguration() *ServiceConfig {
 		}
 	}
 
+	// ensure we have 1 or more endpoints defined
+	if len(cfg.Endpoints) == 0 {
+		fatalIfError(fmt.Errorf("no camera endpoints defined. Specify using the environment variable SQS_OCCUPANCY_GET_ENDPOINT_nnn"))
+	}
+
 	log.Printf("[CONFIG] OutQueueName         = [%s]", cfg.OutQueueName)
 	log.Printf("[CONFIG] MessageBucketName    = [%s]", cfg.MessageBucketName)
+	log.Printf("[CONFIG] EndpointTimeout      = [%d]", cfg.EndpointTimeout)
 	log.Printf("[CONFIG] PollTimeSeconds      = [%d]", cfg.PollTimeSeconds)
 
 	for ix, _ := range cfg.Endpoints {

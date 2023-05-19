@@ -14,7 +14,7 @@ func worker(workerId int, cfg *ServiceConfig, aws awssqs.AWS_SQS, outQueue awssq
 	messages := make([]awssqs.Message, 0, 1)
 	for {
 
-		client := newDigestClient(cfg.Username[workerId], cfg.Password[workerId], 1)
+		client := newDigestClient(cfg.Username[workerId], cfg.Password[workerId], cfg.EndpointTimeout)
 
 		payload, err := httpGet(workerId, cfg.Endpoints[workerId], client)
 		if err == nil {
