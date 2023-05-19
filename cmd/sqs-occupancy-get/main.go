@@ -32,6 +32,8 @@ func main() {
 	for {
 		time.Sleep(999 * time.Second)
 	}
+
+	// should never get here
 }
 
 //

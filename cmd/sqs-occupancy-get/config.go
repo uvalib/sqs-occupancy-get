@@ -21,17 +21,6 @@ type ServiceConfig struct {
 	PollTimeSeconds int      // the endpoint poll time in seconds
 }
 
-func envWithDefault(env string, defaultValue string) string {
-	val, set := os.LookupEnv(env)
-
-	if set == false {
-		log.Printf("DEBUG: environment variable not set: [%s] using default value [%s]", env, defaultValue)
-		return defaultValue
-	}
-
-	return val
-}
-
 func ensureSet(env string) string {
 	val, set := os.LookupEnv(env)
 
@@ -103,3 +92,7 @@ func LoadConfiguration() *ServiceConfig {
 
 	return &cfg
 }
+
+//
+// end of file
+//

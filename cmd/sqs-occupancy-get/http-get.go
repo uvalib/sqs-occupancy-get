@@ -54,7 +54,7 @@ func httpGet(workerId int, url string, client *http.Client) ([]byte, error) {
 				return nil, err
 			}
 
-			log.Printf("ERROR: worker %d GET %s failed with error (%s), retry # %d", workerId, url, err, count)
+			log.Printf("WARNING: worker %d GET %s failed with error (%s), retry # %d", workerId, url, err, count)
 
 			// sleep for a bit before retrying
 			time.Sleep(retrySleepTime)
@@ -63,12 +63,8 @@ func httpGet(workerId int, url string, client *http.Client) ([]byte, error) {
 			defer response.Body.Close()
 
 			if response.StatusCode != http.StatusOK {
-				logLevel := "ERROR"
-				// log not found as informational instead of as an error
-				if response.StatusCode == http.StatusNotFound {
-					logLevel = "INFO"
-				}
-				log.Printf("%s: worker %d GET %s failed with status %d", logLevel, workerId, url, response.StatusCode)
+
+				log.Printf("ERROR: worker %d GET %s failed with status %d", workerId, url, response.StatusCode)
 
 				body, _ := ioutil.ReadAll(response.Body)
 
