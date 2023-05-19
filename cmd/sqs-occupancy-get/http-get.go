@@ -50,6 +50,7 @@ func httpGet(workerId int, url string, client *http.Client) ([]byte, error) {
 
 			// break when tried too many times
 			if count >= maxHttpRetries {
+				log.Printf("ERROR: worker %d GET %s failed with error (%s), retry # %d, giving up", workerId, url, err, count)
 				return nil, err
 			}
 
