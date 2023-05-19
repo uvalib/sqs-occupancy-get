@@ -98,7 +98,7 @@ func LoadConfiguration() *ServiceConfig {
 	log.Printf("[CONFIG] PollTimeSeconds      = [%d]", cfg.PollTimeSeconds)
 
 	for ix, _ := range cfg.Endpoints {
-		log.Printf("[CONFIG] Endpoint %03d   = [%s (%s/REDACTED)]", ix+1, cfg.Endpoints[ix], cfg.Username[ix])
+		log.Printf("[CONFIG] Endpoint %03d         = [%s (%s/REDACTED)]", ix+1, cfg.Endpoints[ix], cfg.Username[ix])
 	}
 
 	return &cfg
