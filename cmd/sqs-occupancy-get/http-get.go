@@ -39,22 +39,22 @@ func httpGet(workerId int, url string, client *http.Client) ([]byte, error) {
 		start := time.Now()
 		response, err = client.Do(req)
 		duration := time.Since(start)
-		log.Printf("INFO: worker %d GET %s (elapsed %d ms)", workerId, url, duration.Milliseconds())
+		log.Printf("INFO: worker %d request %s (elapsed %d ms)", workerId, url, duration.Milliseconds())
 
 		count++
 		if err != nil {
 			if canRetry(err) == false {
-				log.Printf("ERROR: worker %d GET %s failed with error (%s)", workerId, url, err)
+				log.Printf("ERROR: worker %d request %s failed with error (%s)", workerId, url, err)
 				return nil, err
 			}
 
 			// break when tried too many times
 			if count >= maxHttpRetries {
-				log.Printf("ERROR: worker %d GET %s failed with error (%s), retry # %d, giving up", workerId, url, err, count)
+				log.Printf("ERROR: worker %d request %s failed with error (%s), retry # %d, giving up", workerId, url, err, count)
 				return nil, err
 			}
 
-			log.Printf("WARNING: worker %d GET %s failed with error (%s), retry # %d", workerId, url, err, count)
+			log.Printf("WARNING: worker %d request %s failed with error (%s), retry # %d", workerId, url, err, count)
 
 			// sleep for a bit before retrying
 			time.Sleep(retrySleepTime)
@@ -64,7 +64,7 @@ func httpGet(workerId int, url string, client *http.Client) ([]byte, error) {
 
 			if response.StatusCode != http.StatusOK {
 
-				log.Printf("ERROR: worker %d GET %s failed with status %d", workerId, url, response.StatusCode)
+				log.Printf("ERROR: worker %d request %s failed with status %d", workerId, url, response.StatusCode)
 
 				body, _ := ioutil.ReadAll(response.Body)
 

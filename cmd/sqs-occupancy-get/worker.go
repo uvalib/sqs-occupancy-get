@@ -19,7 +19,7 @@ func worker(workerId int, cfg *ServiceConfig, aws awssqs.AWS_SQS, outQueue awssq
 		payload, err := httpGet(workerId, cfg.Endpoints[workerId], client)
 		if err == nil {
 			payload = convertLegalJson(payload)
-			log.Printf("INFO: worker %d received [%s]", workerId, payload)
+			//log.Printf("INFO: worker %d received [%s]", workerId, payload)
 			message := constructMessage(payload)
 
 			messages = append(messages, message)
