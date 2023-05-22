@@ -18,18 +18,23 @@ func worker(workerId int, cfg *ServiceConfig, aws awssqs.AWS_SQS, outQueue awssq
 
 		payload, err := httpGet(workerId, cfg.Endpoints[workerId], client)
 		if err == nil {
+			// cleanup the JSON string and log if it looks suspect
 			payload = convertLegalJson(payload)
-			//log.Printf("INFO: worker %d received [%s]", workerId, payload)
-			message := constructMessage(payload)
-
-			messages = append(messages, message)
-			err := sendOutboundMessages(workerId, aws, outQueue, messages)
-			fatalIfError(err)
+			err := logSuspectTelemetry(workerId, payload)
+			if err == nil {
+				// send to the SQS queue
+				messages = append(messages, constructMessage(payload))
+				err = sendOutboundMessages(workerId, aws, outQueue, messages)
+				fatalIfError(err)
+			} else {
+				log.Printf("ERROR: worker %d received corrupt telemetry data, ignoring (%s)", workerId, payload)
+			}
 
 			// reset the block
 			messages = messages[:0]
 		}
 
+		// and sleep...
 		time.Sleep(time.Duration(cfg.PollTimeSeconds) * time.Second)
 	}
 
