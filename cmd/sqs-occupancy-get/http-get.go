@@ -12,6 +12,7 @@ import (
 
 var maxHttpRetries = 3
 var retrySleepTime = 100 * time.Millisecond
+var logElapsed = 200 * time.Millisecond
 
 func newDigestClient(username string, password string, timeout int) *http.Client {
 
@@ -39,7 +40,10 @@ func httpGet(workerId int, url string, client *http.Client) ([]byte, error) {
 		start := time.Now()
 		response, err = client.Do(req)
 		duration := time.Since(start)
-		log.Printf("INFO: worker %d request %s (elapsed %d ms)", workerId, url, duration.Milliseconds())
+		// log slow queries
+		if duration >= logElapsed {
+			log.Printf("INFO: worker %d SLOW request %s (elapsed %d ms)", workerId, url, duration.Milliseconds())
+		}
 
 		count++
 		if err != nil {

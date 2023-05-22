@@ -2,17 +2,21 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
+	"time"
 )
+
+var location, _ = time.LoadLocation("America/New_York")
 
 // the camera details we need to identify if the telementry is suspect
 type CameraTelemetry struct {
-	Name      string `json:"name"`
-	Serial    string `json:"serial"`
-	Occupancy int    `json:"occupancy"`
-	TotalIn   int    `json:"total_in"`
-	TotalOut  int    `json:"total_out"`
+	Timestamp string `json:"timestamp"`
+	UnixTime  uint64 `json:"unixtime,omitempty"`
+	Occupancy int    `json:"occupancy,omitempty"` // some endpoints do not deliver this
+	In        int    `json:"in"`
+	Out       int    `json:"out"`
 }
 
 func fatalIfError(err error) {
@@ -21,34 +25,51 @@ func fatalIfError(err error) {
 	}
 }
 
-func convertLegalJson(payload []byte) []byte {
+func cleanupAndValidateJson(workerId int, cameraClass string, url string, payload []byte) ([]byte, error) {
 
-	// special cases to make the data more better
+	// special cases to make the data cleaner/legal
 	pl := string(payload)
 	pl = strings.Replace(pl, "\n", "", -1)
 	pl = strings.Replace(pl, "  ", " ", -1)
 	pl = strings.Replace(pl, "average visit time", "average_visit_time", 1)
-	pl = strings.Replace(pl, "total in", "total_in", 1)
-	pl = strings.Replace(pl, "total out", "total_out", 1)
-	return []byte(pl)
-}
+	pl = strings.Replace(pl, "total in", "in", 1)
+	pl = strings.Replace(pl, "total out", "out", 1)
 
-func logSuspectTelemetry(workerId int, payload []byte) error {
-
-	// extract the camera telemetry and determine if it is suspect
+	// convert to JSON structure to validate
 	var ct CameraTelemetry
 	err := json.Unmarshal(payload, &ct)
 	if err != nil {
 		// nonsense data (cannot decode), just return the error
-		return err
+		return nil, err
 	}
 
-	// potentially suspect telemetry
-	if ct.Occupancy == -1 || ct.TotalIn == -1 || ct.TotalOut == -1 {
-		log.Printf("WARNING: worker %d received suspect telemetry data from [%s/%s] (%s)", workerId, ct.Name, ct.Serial, payload)
+	// add the camera class field
+	s := fmt.Sprintf(", \"class\" : \"%s\"}", cameraClass)
+	pl = strings.Replace(pl, "}", s, 1)
+
+	// if the payload does not contain the unixtime (some calls done), we need to add it
+	if ct.UnixTime == 0 {
+		format := "20060102150405" // yeah, crap right
+		dt, err := time.ParseInLocation(format, ct.Timestamp, location)
+		if err != nil {
+			// nonsense date (cannot decode), just return the error
+			return nil, err
+		}
+		s := fmt.Sprintf(", \"unixtime\" : %d}", dt.Unix())
+		pl = strings.Replace(pl, "}", s, 1)
 	}
 
-	return nil
+	// potentially suspect telemetry from a main camera
+	if cameraClass == OccupancyCamera && (ct.Occupancy == -1 || ct.In == -1 || ct.Out == -1) {
+		log.Printf("WARNING: worker %d received suspect telemetry data %s [%s]", workerId, url, payload)
+	}
+
+	// potentially suspect telemetry from a normal camera
+	if cameraClass == SumCamera && (ct.In == -1 || ct.Out == -1) {
+		log.Printf("WARNING: worker %d received suspect telemetry data %s [%s]", workerId, url, payload)
+	}
+
+	return []byte(pl), nil
 }
 
 //

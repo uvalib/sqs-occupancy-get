@@ -14,11 +14,18 @@ type ServiceConfig struct {
 	OutQueueName      string // SQS queue name for outbound documents
 	MessageBucketName string // the bucket to use for large messages
 
-	Endpoints       []string // the list of endpoints
-	Username        []string // the list of endpoint usernames
-	Password        []string // the list of endpoint passwords
-	EndpointTimeout int      // the endpoint timeout in seconds
-	PollTimeSeconds int      // the endpoint poll time in seconds
+	OccupancyQuery string // the get occupancy endpoint query
+	SumQuery       string // the get sum in/out endpoint query
+
+	OccupancyIp       []string // the list of camera ip addresses (occupancy queries)
+	OccupancyUsername []string // the list of camera usernames
+	OccupancyPassword []string // the list of camera passwords
+	SumIp             []string // the list of camera ip addresses (sum queries)
+	SumUsername       []string // the list of camera usernames
+	SumPassword       []string // the list of camera passwords
+
+	EndpointTimeout int // the endpoint timeout in seconds
+	PollTimeSeconds int // the endpoint poll time in seconds
 }
 
 func ensureSet(env string) string {
@@ -59,35 +66,57 @@ func LoadConfiguration() *ServiceConfig {
 
 	cfg.OutQueueName = ensureSetAndNonEmpty("SQS_OCCUPANCY_GET_OUT_QUEUE")
 	cfg.MessageBucketName = ensureSetAndNonEmpty("SQS_MESSAGE_BUCKET")
-	cfg.EndpointTimeout = envToInt("SQS_OCCUPANCY_GET_ENDPOINT_TIMEOUT")
+	cfg.EndpointTimeout = envToInt("SQS_OCCUPANCY_GET_CAMERA_TIMEOUT")
 	cfg.PollTimeSeconds = envToInt("SQS_OCCUPANCY_GET_POLL_IN_SECONDS")
+	cfg.OccupancyQuery = ensureSetAndNonEmpty("SQS_OCCUPANCY_GET_OCCUPANCY_QUERY")
+	cfg.SumQuery = ensureSetAndNonEmpty("SQS_OCCUPANCY_GET_SUM_QUERY")
+
 	userName := ensureSetAndNonEmpty("SQS_OCCUPANCY_GET_USERNAME")
 	password := ensureSetAndNonEmpty("SQS_OCCUPANCY_GET_PASSWORD")
 
 	for ix := 0; ix < maxCameras; ix++ {
-		env := fmt.Sprintf("SQS_OCCUPANCY_GET_ENDPOINT_%03d", ix+1)
+		env := fmt.Sprintf("SQS_OCCUPANCY_GET_MAIN_CAMERA_%03d", ix+1)
 		val, set := os.LookupEnv(env)
 		if set == true {
-			cfg.Endpoints = append(cfg.Endpoints, val)
-			cfg.Username = append(cfg.Username, userName)
-			cfg.Password = append(cfg.Password, password)
+			cfg.OccupancyIp = append(cfg.OccupancyIp, val)
+			cfg.OccupancyUsername = append(cfg.OccupancyUsername, userName)
+			cfg.OccupancyPassword = append(cfg.OccupancyPassword, password)
+		} else {
+			break
+		}
+	}
+
+	for ix := 0; ix < maxCameras; ix++ {
+		env := fmt.Sprintf("SQS_OCCUPANCY_GET_CAMERA_%03d", ix+1)
+		val, set := os.LookupEnv(env)
+		if set == true {
+			cfg.SumIp = append(cfg.SumIp, val)
+			cfg.SumUsername = append(cfg.SumUsername, userName)
+			cfg.SumPassword = append(cfg.SumPassword, password)
 		} else {
 			break
 		}
 	}
 
 	// ensure we have 1 or more endpoints defined
-	if len(cfg.Endpoints) == 0 {
-		fatalIfError(fmt.Errorf("no camera endpoints defined. Specify using the environment variable SQS_OCCUPANCY_GET_ENDPOINT_nnn"))
+	if len(cfg.OccupancyIp) == 0 && len(cfg.SumIp) == 0 {
+		fatalIfError(fmt.Errorf("no camera ip addresses defined"))
 	}
 
 	log.Printf("[CONFIG] OutQueueName         = [%s]", cfg.OutQueueName)
 	log.Printf("[CONFIG] MessageBucketName    = [%s]", cfg.MessageBucketName)
+	log.Printf("[CONFIG] OccupancyQuery       = [%s]", cfg.OccupancyQuery)
+	log.Printf("[CONFIG] SumQuery             = [%s]", cfg.SumQuery)
+
 	log.Printf("[CONFIG] EndpointTimeout      = [%d]", cfg.EndpointTimeout)
 	log.Printf("[CONFIG] PollTimeSeconds      = [%d]", cfg.PollTimeSeconds)
 
-	for ix, _ := range cfg.Endpoints {
-		log.Printf("[CONFIG] Endpoint %03d         = [%s (%s/REDACTED)]", ix+1, cfg.Endpoints[ix], cfg.Username[ix])
+	for ix, _ := range cfg.OccupancyIp {
+		log.Printf("[CONFIG] Main camera %03d      = [%s (%s/REDACTED)]", ix+1, cfg.OccupancyIp[ix], cfg.OccupancyUsername[ix])
+	}
+
+	for ix, _ := range cfg.SumIp {
+		log.Printf("[CONFIG] Camera %03d           = [%s (%s/REDACTED)]", ix+1, cfg.SumIp[ix], cfg.SumUsername[ix])
 	}
 
 	return &cfg
