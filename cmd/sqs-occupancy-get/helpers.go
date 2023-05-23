@@ -13,7 +13,6 @@ var location, _ = time.LoadLocation("America/New_York")
 // the camera details we need to identify if the telementry is suspect
 type CameraTelemetry struct {
 	Timestamp string `json:"timestamp"`
-	UnixTime  uint64 `json:"unixtime,omitempty"`
 	Occupancy int    `json:"occupancy,omitempty"` // some endpoints do not deliver this
 	In        int    `json:"in"`
 	Out       int    `json:"out"`
@@ -47,8 +46,14 @@ func cleanupAndValidateJson(workerId int, cameraClass string, url string, payloa
 	s := fmt.Sprintf(", \"class\" : \"%s\"}", cameraClass)
 	pl = strings.Replace(pl, "}", s, 1)
 
-	// if the payload does not contain the unixtime (some calls done), we need to add it
-	if ct.UnixTime == 0 {
+	// if the payload does not contain the occupancy (some payloads don't), we need to add it
+	if strings.Contains(pl, "occupancy") == false {
+		s := fmt.Sprintf(", \"occupancy\" : 0}")
+		pl = strings.Replace(pl, "}", s, 1)
+	}
+
+	// if the payload does not contain the unixtime (some payloads don't), we need to add it
+	if strings.Contains(pl, "unixtime") == false {
 		format := "20060102150405" // yeah, crap right
 		dt, err := time.ParseInLocation(format, ct.Timestamp, location)
 		if err != nil {
