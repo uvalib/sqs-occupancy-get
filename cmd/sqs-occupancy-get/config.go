@@ -103,20 +103,20 @@ func LoadConfiguration() *ServiceConfig {
 		fatalIfError(fmt.Errorf("no camera ip addresses defined"))
 	}
 
-	log.Printf("[CONFIG] OutQueueName         = [%s]", cfg.OutQueueName)
-	log.Printf("[CONFIG] MessageBucketName    = [%s]", cfg.MessageBucketName)
-	log.Printf("[CONFIG] OccupancyQuery       = [%s]", cfg.OccupancyQuery)
-	log.Printf("[CONFIG] SumQuery             = [%s]", cfg.SumQuery)
+	log.Printf("[config] OutQueueName         = [%s]", cfg.OutQueueName)
+	log.Printf("[config] MessageBucketName    = [%s]", cfg.MessageBucketName)
+	log.Printf("[config] OccupancyQuery       = [%s]", cfg.OccupancyQuery)
+	log.Printf("[config] SumQuery             = [%s]", cfg.SumQuery)
 
-	log.Printf("[CONFIG] EndpointTimeout      = [%d]", cfg.EndpointTimeout)
-	log.Printf("[CONFIG] PollTimeSeconds      = [%d]", cfg.PollTimeSeconds)
+	log.Printf("[config] EndpointTimeout      = [%d]", cfg.EndpointTimeout)
+	log.Printf("[config] PollTimeSeconds      = [%d]", cfg.PollTimeSeconds)
 
 	for ix, _ := range cfg.OccupancyIp {
-		log.Printf("[CONFIG] Main camera %03d      = [%s (%s/REDACTED)]", ix+1, cfg.OccupancyIp[ix], cfg.OccupancyUsername[ix])
+		log.Printf("[config] Main camera %03d      = [%s (%s/REDACTED)]", ix+1, cfg.OccupancyIp[ix], cfg.OccupancyUsername[ix])
 	}
 
 	for ix, _ := range cfg.SumIp {
-		log.Printf("[CONFIG] Camera %03d           = [%s (%s/REDACTED)]", ix+1, cfg.SumIp[ix], cfg.SumUsername[ix])
+		log.Printf("[config] Camera %03d           = [%s (%s/REDACTED)]", ix+1, cfg.SumIp[ix], cfg.SumUsername[ix])
 	}
 
 	return &cfg

@@ -66,12 +66,12 @@ func cleanupAndValidateJson(workerId int, cameraClass string, url string, payloa
 
 	// potentially suspect telemetry from a main camera
 	if cameraClass == OccupancyCamera && (ct.Occupancy == -1 || ct.In == -1 || ct.Out == -1) {
-		log.Printf("WARNING: worker %d received suspect telemetry data %s [%s]", workerId, url, payload)
+		log.Printf("WARNING: [worker %d] received suspect telemetry data %s [%s]", workerId, url, payload)
 	}
 
 	// potentially suspect telemetry from a normal camera
 	if cameraClass == SumCamera && (ct.In == -1 || ct.Out == -1) {
-		log.Printf("WARNING: worker %d received suspect telemetry data %s [%s]", workerId, url, payload)
+		log.Printf("WARNING: [worker %d] received suspect telemetry data %s [%s]", workerId, url, payload)
 	}
 
 	return []byte(pl), nil

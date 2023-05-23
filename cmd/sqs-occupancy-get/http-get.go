@@ -30,7 +30,7 @@ func httpGet(workerId int, url string, client *http.Client) ([]byte, error) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Printf("ERROR: worker %d GET %s failed with error (%s)", workerId, url, err)
+		log.Printf("ERROR: [worker %d] GET %s failed with error (%s)", workerId, url, err)
 		return nil, err
 	}
 
@@ -42,23 +42,23 @@ func httpGet(workerId int, url string, client *http.Client) ([]byte, error) {
 		duration := time.Since(start)
 		// log slow queries
 		if duration >= logElapsed {
-			log.Printf("INFO: worker %d SLOW request %s (elapsed %d ms)", workerId, url, duration.Milliseconds())
+			log.Printf("INFO: [worker %d] SLOW request %s (elapsed %d ms)", workerId, url, duration.Milliseconds())
 		}
 
 		count++
 		if err != nil {
 			if canRetry(err) == false {
-				log.Printf("ERROR: worker %d request %s failed with error (%s)", workerId, url, err)
+				log.Printf("ERROR: [worker %d] request %s failed with error (%s)", workerId, url, err)
 				return nil, err
 			}
 
 			// break when tried too many times
 			if count >= maxHttpRetries {
-				log.Printf("ERROR: worker %d request %s failed with error (%s), retry # %d, giving up", workerId, url, err, count)
+				log.Printf("ERROR: [worker %d] request %s failed with error (%s), retry # %d, giving up", workerId, url, err, count)
 				return nil, err
 			}
 
-			log.Printf("WARNING: worker %d request %s failed with error (%s), retry # %d", workerId, url, err, count)
+			log.Printf("WARNING: [worker %d] request %s failed with error (%s), retry # %d", workerId, url, err, count)
 
 			// sleep for a bit before retrying
 			time.Sleep(retrySleepTime)
@@ -68,7 +68,7 @@ func httpGet(workerId int, url string, client *http.Client) ([]byte, error) {
 
 			if response.StatusCode != http.StatusOK {
 
-				log.Printf("ERROR: worker %d request %s failed with status %d", workerId, url, response.StatusCode)
+				log.Printf("ERROR: [worker %d] request %s failed with status %d", workerId, url, response.StatusCode)
 
 				body, _ := ioutil.ReadAll(response.Body)
 
@@ -76,7 +76,7 @@ func httpGet(workerId int, url string, client *http.Client) ([]byte, error) {
 			} else {
 				body, err := ioutil.ReadAll(response.Body)
 				if err != nil {
-					log.Printf("ERROR: worker %d reading response body (%s)", workerId, err.Error())
+					log.Printf("ERROR: [worker %d] reading response body (%s)", workerId, err.Error())
 					return nil, err
 				}
 

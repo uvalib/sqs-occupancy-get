@@ -10,7 +10,7 @@ import (
 // number of times to retry a message put before giving up and terminating
 var sendRetries = uint(3)
 
-func worker(workerId int, cameraClass string, client *http.Client, url string, pollTime int, aws awssqs.AWS_SQS, outQueue awssqs.QueueHandle) {
+func worker(workerId int, cameraClass string, client *http.Client, url string, pollTime int, aws awssqs.AWS_SQS, outQueue awssqs.QueueHandle, counter *Counter) {
 
 	messages := make([]awssqs.Message, 0, 1)
 	for {
@@ -24,12 +24,16 @@ func worker(workerId int, cameraClass string, client *http.Client, url string, p
 				messages = append(messages, constructMessage(payload))
 				err = sendOutboundMessages(workerId, aws, outQueue, messages)
 				fatalIfError(err)
+				counter.AddSuccess(1)
 			} else {
-				log.Printf("ERROR: worker %d received bad telemetry data, ignoring (%s)", workerId, payload)
+				log.Printf("ERROR: [worker %d] received bad telemetry data, ignoring (%s)", workerId, payload)
+				counter.AddError(1)
 			}
 
 			// reset the block
 			messages = messages[:0]
+		} else {
+			counter.AddError(1)
 		}
 
 		// and sleep...
@@ -53,7 +57,7 @@ func sendOutboundMessages(workerId int, aws awssqs.AWS_SQS, outQueue awssqs.Queu
 	if err != nil {
 		// if an error we can handle, retry
 		if err == awssqs.ErrOneOrMoreOperationsUnsuccessful {
-			log.Printf("WARNING: worker %d one or more items failed to send to output queue, retrying...", workerId)
+			log.Printf("WARNING: [worker %d] one or more items failed to send to output queue, retrying...", workerId)
 
 			// retry the failed items and bail out if we cannot retry
 			err = aws.MessagePutRetry(outQueue, batch, opStatus1, sendRetries)
