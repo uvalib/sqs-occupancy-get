@@ -8,7 +8,7 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go v1.44.265 // indirect
+	github.com/aws/aws-sdk-go v1.44.275 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/uvalib/uva-aws-s3-sdk/uva-s3 v0.0.0-20220527134326-5f592a4b5fe9 // indirect
