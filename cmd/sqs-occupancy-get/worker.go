@@ -8,7 +8,8 @@ import (
 )
 
 // number of times to retry a message put before giving up and terminating
-var sendRetries = uint(3)
+var sendRetries = 3
+var retrySleep = 500 * time.Millisecond
 
 func worker(workerId int, cameraClass string, client *http.Client, url string, pollTime int, aws awssqs.AWS_SQS, outQueue awssqs.QueueHandle, counter *Counter) {
 
@@ -53,23 +54,25 @@ func constructMessage(payload []byte) awssqs.Message {
 
 func sendOutboundMessages(workerId int, aws awssqs.AWS_SQS, outQueue awssqs.QueueHandle, batch []awssqs.Message) error {
 
-	opStatus1, err := aws.BatchMessagePut(outQueue, batch)
-	if err != nil {
-		// if an error we can handle, retry
-		if err == awssqs.ErrOneOrMoreOperationsUnsuccessful {
-			log.Printf("WARNING: [worker %d] one or more items failed to send to output queue, retrying...", workerId)
-
-			// retry the failed items and bail out if we cannot retry
-			err = aws.MessagePutRetry(outQueue, batch, opStatus1, sendRetries)
+	// we only ever send 1 message so can implement a retry loop here
+	attempt := 0
+	for {
+		_, err := aws.BatchMessagePut(outQueue, batch)
+		if err == nil {
+			return nil
 		}
 
-		// bail out if an error and let someone else handle it
-		if err != nil {
+		// is it time to give up
+		attempt++
+		if attempt == sendRetries {
+			log.Printf("ERROR: [worker %d] failed to send %d times, giving up", workerId, sendRetries)
 			return err
 		}
-	}
 
-	return nil
+		// wait a bit and try again
+		log.Printf("ERROR: [worker %d] failed to send %d time(s), waiting to retry", workerId, attempt)
+		time.Sleep(retrySleep)
+	}
 }
 
 //
