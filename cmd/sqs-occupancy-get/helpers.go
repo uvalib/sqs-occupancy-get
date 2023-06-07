@@ -9,6 +9,7 @@ import (
 )
 
 var location, _ = time.LoadLocation("America/New_York")
+var suspectTelemetryError = fmt.Errorf("suspect telemetry data, one or more count fields is -1")
 
 // the camera details we need to identify if the telementry is suspect
 type CameraTelemetry struct {
@@ -39,7 +40,7 @@ func cleanupAndValidateJson(workerId int, cameraClass string, url string, payloa
 	err := json.Unmarshal(payload, &ct)
 	if err != nil {
 		// nonsense data (cannot decode), just return the error
-		return nil, err
+		return payload, err
 	}
 
 	// add the camera class field
@@ -58,7 +59,7 @@ func cleanupAndValidateJson(workerId int, cameraClass string, url string, payloa
 		dt, err := time.ParseInLocation(format, ct.Timestamp, location)
 		if err != nil {
 			// nonsense date (cannot decode), just return the error
-			return nil, err
+			return payload, err
 		}
 		s := fmt.Sprintf(", \"unixtime\" : %d}", dt.Unix())
 		pl = strings.Replace(pl, "}", s, 1)
@@ -66,12 +67,14 @@ func cleanupAndValidateJson(workerId int, cameraClass string, url string, payloa
 
 	// potentially suspect telemetry from a main camera
 	if cameraClass == OccupancyCamera && (ct.Occupancy == -1 || ct.In == -1 || ct.Out == -1) {
-		log.Printf("WARNING: [worker %d] received suspect telemetry data %s [%s]", workerId, url, payload)
+		//log.Printf("WARNING: [worker %d] received suspect telemetry data %s [%s]", workerId, url, payload)
+		return payload, suspectTelemetryError
 	}
 
 	// potentially suspect telemetry from a normal camera
 	if cameraClass == SumCamera && (ct.In == -1 || ct.Out == -1) {
-		log.Printf("WARNING: [worker %d] received suspect telemetry data %s [%s]", workerId, url, payload)
+		//log.Printf("WARNING: [worker %d] received suspect telemetry data %s [%s]", workerId, url, payload)
+		return payload, suspectTelemetryError
 	}
 
 	return []byte(pl), nil

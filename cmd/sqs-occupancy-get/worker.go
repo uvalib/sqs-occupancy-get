@@ -27,7 +27,7 @@ func worker(workerId int, cameraClass string, client *http.Client, url string, p
 				fatalIfError(err)
 				counter.AddSuccess(1)
 			} else {
-				log.Printf("ERROR: [worker %d] received bad telemetry data, ignoring (%s)", workerId, payload)
+				log.Printf("ERROR: [worker %d] received bad telemetry data (%s), ignoring [%s]", workerId, err.Error(), payload)
 				counter.AddError(1)
 			}
 
