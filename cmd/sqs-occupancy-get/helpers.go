@@ -55,11 +55,24 @@ func cleanupAndValidateJson(workerId int, cameraClass string, url string, payloa
 
 	// if the payload does not contain the unixtime (some payloads don't), we need to add it
 	if strings.Contains(pl, "unixtime") == false {
-		format := "20060102150405" // yeah, crap right
-		dt, err := time.ParseInLocation(format, ct.Timestamp, location)
-		if err != nil {
-			// nonsense date (cannot decode), just return the error
-			return payload, err
+
+		var err error
+		dt := time.Now()
+
+		// if we have a timestamp then use it otherwise use our local time
+		if len(ct.Timestamp) != 0 {
+
+			// try multiple formats
+			format := "20060102150405" // yeah, crap right
+			dt, err = time.ParseInLocation(format, ct.Timestamp, location)
+			if err != nil {
+				format := "2006-01-02T15:04:05+00:00" // yeah, crap right
+				dt, err = time.ParseInLocation(format, ct.Timestamp, location)
+				if err != nil {
+					// nonsense date (cannot decode), just return the error
+					return payload, err
+				}
+			}
 		}
 		s := fmt.Sprintf(", \"unixtime\" : %d}", dt.Unix())
 		pl = strings.Replace(pl, "}", s, 1)

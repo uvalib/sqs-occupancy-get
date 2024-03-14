@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"github.com/uvalib/virgo4-sqs-sdk/awssqs"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -16,7 +18,7 @@ func worker(workerId int, cameraClass string, client *http.Client, url string, p
 	messages := make([]awssqs.Message, 0, 1)
 	for {
 
-		payload, err := httpGet(workerId, url, client)
+		payload, err := httpGet(workerId, urlRewrite(url), client)
 		if err == nil {
 			// cleanup the JSON string and log if it looks suspect
 			payload, err = cleanupAndValidateJson(workerId, cameraClass, url, payload)
@@ -73,6 +75,21 @@ func sendOutboundMessages(workerId int, aws awssqs.AWS_SQS, outQueue awssqs.Queu
 		log.Printf("ERROR: [worker %d] failed to send %d time(s), waiting to retry", workerId, attempt)
 		time.Sleep(retrySleep)
 	}
+}
+
+func urlRewrite(url string) string {
+
+	res := url
+	// do some URL substitution
+	// look for tomorrow's date placeholder
+	if strings.Contains(url, "XX_TOMORROW_YYMMDD_XX") {
+		today := time.Now()
+		tomorrow := today.AddDate(0, 0, 1)
+		yymmdd := fmt.Sprintf("%04d%02d%02d", tomorrow.Year(), tomorrow.Month(), tomorrow.Day())
+		res = strings.Replace(url, "XX_TOMORROW_YYMMDD_XX", yymmdd, 1)
+	}
+
+	return res
 }
 
 //

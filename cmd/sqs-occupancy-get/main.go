@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/uvalib/virgo4-sqs-sdk/awssqs"
@@ -36,17 +35,15 @@ func main() {
 
 	log.Printf("[main] starting workers...")
 	// start main camera workers here
-	for ix := 0; ix < len(cfg.OccupancyIp); ix++ {
+	for ix := 0; ix < len(cfg.OccupancyEndpoint); ix++ {
 		client := newDigestClient(cfg.OccupancyUsername[ix], cfg.OccupancyPassword[ix], cfg.EndpointTimeout)
-		url := strings.Replace(cfg.OccupancyQuery, "{:ip:}", cfg.OccupancyIp[ix], 1)
-		go worker(ix, OccupancyCamera, client, url, cfg.PollTimeSeconds, aws, outQueueHandle, &counter)
+		go worker(ix, OccupancyCamera, client, cfg.OccupancyEndpoint[ix], cfg.PollTimeSeconds, aws, outQueueHandle, &counter)
 	}
 
 	// start all camera workers here
-	for ix := 0; ix < len(cfg.SumIp); ix++ {
+	for ix := 0; ix < len(cfg.SumEndpoint); ix++ {
 		client := newDigestClient(cfg.SumUsername[ix], cfg.SumPassword[ix], cfg.EndpointTimeout)
-		url := strings.Replace(cfg.SumQuery, "{:ip:}", cfg.SumIp[ix], 1)
-		go worker(ix+len(cfg.OccupancyIp), SumCamera, client, url, cfg.PollTimeSeconds, aws, outQueueHandle, &counter)
+		go worker(ix+len(cfg.OccupancyEndpoint), SumCamera, client, cfg.SumEndpoint[ix], cfg.PollTimeSeconds, aws, outQueueHandle, &counter)
 	}
 
 	// sleep and show metrics forever
