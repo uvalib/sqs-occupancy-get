@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/uvalib/virgo4-sqs-sdk/awssqs"
 	"log"
@@ -16,20 +17,44 @@ var retrySleep = 500 * time.Millisecond
 func worker(workerId int, cameraClass string, client *http.Client, url string, pollTime int, aws awssqs.AWS_SQS, outQueue awssqs.QueueHandle, counter *Counter) {
 
 	messages := make([]awssqs.Message, 0, 1)
-	for {
+	serial := "" // some responses don't contain the serial number and we need to save it between calls
 
+	for {
 		payload, err := httpGet(workerId, urlRewrite(url), client)
 		if err == nil {
-			// cleanup the JSON string and log if it looks suspect
-			payload, err = cleanupAndValidateJson(workerId, cameraClass, url, payload)
+			//fmt.Printf("IN [%s]\n", string(payload))
+
+			payload = cleanupInboundJson(payload)
+
+			// normalize the payload string and log if it looks suspect
+			obt, err := makeOutboundTelemetry(workerId, cameraClass, payload)
 			if err == nil {
-				// send to the SQS queue
-				messages = append(messages, constructMessage(payload))
-				err = sendOutboundMessages(workerId, aws, outQueue, messages)
-				fatalIfError(err)
-				counter.AddSuccess(1)
+
+				// some responses do not include the serial number
+				if len(obt.Serial) == 0 {
+					if len(serial) == 0 {
+						// this is a special case and I don't like it
+						log.Printf("INFO: [worker %d] getting serial number...", workerId)
+						serial = getSerial(workerId, client, url)
+					}
+
+					obt.Serial = serial
+				}
+
+				pl, err := json.Marshal(&obt)
+				if err == nil {
+					//fmt.Printf("OUT [%s]\n", string(pl))
+					// send to the SQS queue
+					messages = append(messages, constructMessage(pl))
+					err = sendOutboundMessages(workerId, aws, outQueue, messages)
+					fatalIfError(err)
+					counter.AddSuccess(1)
+				} else {
+					log.Printf("ERROR: [worker %d] received suspect telemetry data (%s), ignoring [%s]", workerId, err.Error(), payload)
+					counter.AddError(1)
+				}
 			} else {
-				log.Printf("ERROR: [worker %d] received bad telemetry data (%s), ignoring [%s]", workerId, err.Error(), payload)
+				log.Printf("ERROR: [worker %d] received suspect telemetry data (%s), ignoring [%s]", workerId, err.Error(), payload)
 				counter.AddError(1)
 			}
 
